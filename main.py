@@ -10,6 +10,14 @@ class Layer:
         new_act = (self.weights @ activations) + self.bias 
         return self.activation(new_act) # let X = Wb + bias -> sigmoid(X) or softmax(X)
     
+class NeuralNetwork:
+    def __init__(self, layers: list[Layer]):
+        self.layers = layers
+    
+    def forward(self, data: np.ndarray) -> np.ndarray:
+        for layer in self.layers:
+            data = layer.forward(data)
+        return data
 
 
 def sigmoid(x: float) -> float:
@@ -34,9 +42,9 @@ def cross_entropy(predictions: np.ndarray, correct_index: int) -> float:
     loss = -np.log(predictions[correct_index])
     return loss
 
-activations = np.array([0.4, 0.3, -0.121])
-deep = Layer(activations.shape[0], 2, sigmoid)
-new_activations = deep.forward(activations)
-exit = Layer(new_activations.shape[0], 10, softmax)
-print(exit.forward(new_activations))
-print(np.sum(exit.forward(new_activations)))
+# pred = np.random.randn(784)
+# A = Layer(784, 128, sigmoid)
+# Exit = Layer(128, 10, softmax)
+# network = NeuralNetwork([A, Exit])
+# print(network.forward(pred))
+# print(np.sum(network.forward(pred)))
