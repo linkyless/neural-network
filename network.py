@@ -1,12 +1,24 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from keras.datasets import mnist
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train = x_train.reshape(60000, 784) / 255.0
-x_test  = x_test.reshape(10000, 784) / 255.0
 
-learning_rate = 0.01
-epochs = 15
+
+def sigmoid(x: float) -> float:
+    return 1 / (1 + np.exp(-x))
+
+
+def diff_sigmoid(x: float) -> float:
+    return sigmoid(x) * (1 - sigmoid(x))
+
+
+def softmax(arr: np.ndarray) -> np.ndarray:
+    exp_arr = np.exp(arr)
+    exp_sum = np.sum(exp_arr)
+    new_arr = exp_arr / exp_sum
+    return new_arr
+
+
+def cross_entropy(predictions: np.ndarray, correct_index: int) -> float:
+    loss = -np.log(predictions[correct_index])
+    return loss
 
 
 class Layer:
@@ -65,69 +77,3 @@ class NeuralNetwork:
         self.layers[-1].bias    -= learning_rate * db2
         self.layers[-2].weights -= learning_rate * dW1
         self.layers[-2].bias    -= learning_rate * db1
-
-
-
-def sigmoid(x: float) -> float:
-    return 1 / (1 + np.exp(-x))
-
-
-def cost(prediction: float, real: float) -> float:
-    return (prediction - real) ** 2
-
-
-def diff_sigmoid(x: float) -> float:
-    return sigmoid(x) * (1 - sigmoid(x))
-
-
-def softmax(arr: np.ndarray) -> np.ndarray:
-    exp_arr = np.exp(arr)
-    exp_sum = np.sum(exp_arr)
-    new_arr = exp_arr / exp_sum
-    return new_arr
-
-def cross_entropy(predictions: np.ndarray, correct_index: int) -> float:
-    loss = -np.log(predictions[correct_index])
-    return loss
-
-# pred = np.random.randn(784)
-# A = Layer(784, 128, sigmoid)
-# Exit = Layer(128, 10, softmax)
-# network = NeuralNetwork([A, Exit])
-# print(network.forward(pred))
-# print(np.sum(network.forward(pred)))
-
-hidden_layer = Layer(784, 128, sigmoid)
-output_layer = Layer(128, 10, softmax)
-
-network = NeuralNetwork([hidden_layer, output_layer])
-costs = []
-
-for epoch in range(epochs):
-    cost_epoch = 0
-    for i in range(len(x_train)):
-        data = x_train[i]
-        predictions = network.forward(data)
-        network.backprop(data, predictions, y_train[i], learning_rate)
-        cost_epoch += cross_entropy(predictions, y_train[i])
-    
-    costs.append(cost_epoch / len(x_train))
-    print(f"epoch {epoch + 1} completed. cost: {costs[-1]:.4f}")
-
-
-precision = 0
-
-
-for i in range(len(x_test)):
-    data = x_test[i]
-    predictions = network.forward(data)
-    if np.argmax(predictions) == y_test[i]:
-        precision = precision + 1
-
-
-
-print(f"Precision: {precision / 10000 * 100}%")
-plt.plot(costs)
-plt.xlabel('epoch')
-plt.ylabel('cost')
-plt.show()
