@@ -9,10 +9,12 @@ x_train = x_train / 255.0
 x_test  = x_test.reshape(10000, 784) / 255.0
 
 learning_rate = 0.01
-epochs = 10
+epochs = 20
 
-hidden_layer = Layer(784, 128, sigmoid)
-output_layer = Layer(128, 10, softmax)
+hidden_size = 256 # hidden layer number of neurons
+
+hidden_layer = Layer(784, hidden_size, sigmoid)
+output_layer = Layer(hidden_size, 10, softmax)
 
 network = NeuralNetwork([hidden_layer, output_layer])
 costs = []
