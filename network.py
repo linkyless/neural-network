@@ -23,7 +23,7 @@ def cross_entropy(predictions: np.ndarray, correct_index: int) -> float:
 
 class Layer:
     def __init__(self, n_prev, n_curr, activation):
-        self.weights    = np.random.randn(n_curr, n_prev) * 0.01
+        self.weights    = np.random.randn(n_curr, n_prev) * np.sqrt(2 / n_prev)
         self.bias       = np.zeros(n_curr)
         self.activation = activation
 
