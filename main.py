@@ -1,4 +1,12 @@
 import numpy as np
+from keras.datasets import mnist
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train = x_train.reshape(60000, 784) / 255.0
+x_test  = x_test.reshape(10000, 784) / 255.0
+
+learning_rate = 0.01
+epochs = 15
+
 
 class Layer:
     def __init__(self, n_prev, n_curr, activation):
@@ -31,7 +39,7 @@ class NeuralNetwork:
         dZ2 = predictions - y
 
         # dC/dW2 = dZ2 * dZ2/dW2 = dZ2 * layers[-1].S -> (10,) * (128,) = (10, 128)
-        dW2 = np.outer(dZ2, self.layers[-1].S)
+        dW2 = np.outer(dZ2, self.layers[-2].S)
 
         # dC/db2 = dZ2
         db2 = dZ2
@@ -39,7 +47,7 @@ class NeuralNetwork:
         # Hidden Layer - Weights and Biases
 
         # dC/dS1 = dZ2 * dZ2/dS1 = dZ2 * W2 -> (10,) * (10, 128) -> (10,) * (128, 10) = (128,)
-        dS1 = dZ2 @ self.layers[-1].weights.T # transpose
+        dS1 = self.layers[-1].weights.T @ dZ2  # transpose
 
         # dC/dZ1 = dS1 * dS1/dZ1 = dS1 * diff_sigmoid(Z1) -> (128,) * (128,) = (128,)
         dZ1 = dS1 * diff_sigmoid(self.layers[-2].Z)
@@ -87,3 +95,26 @@ def cross_entropy(predictions: np.ndarray, correct_index: int) -> float:
 # network = NeuralNetwork([A, Exit])
 # print(network.forward(pred))
 # print(np.sum(network.forward(pred)))
+
+hidden_layer = Layer(784, 128, sigmoid)
+output_layer = Layer(128, 10, softmax)
+
+network = NeuralNetwork([hidden_layer, output_layer])
+
+for epoch in range(epochs):
+    for i in range(len(x_train)):
+        data = x_train[i]
+        predictions = network.forward(data)
+        network.backprop(data, predictions, y_train[i], learning_rate)
+    print(f"epoch {epoch + 1} completed")
+
+precision = 0
+
+for i in range(len(x_test)):
+    data = x_test[i]
+    predictions = network.forward(data)
+    if np.argmax(predictions) == y_test[i]:
+        precision = precision + 1
+
+print(f"Precision: {precision / 10000 * 100}%")
+
