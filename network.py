@@ -11,14 +11,14 @@ def diff_sigmoid(x: float) -> float:
 
 def softmax(arr: np.ndarray) -> np.ndarray:
     exp_arr = np.exp(arr)
-    exp_sum = np.sum(exp_arr)
+    exp_sum = np.sum(exp_arr, axis=-1, keepdims=True)
     new_arr = exp_arr / exp_sum
     return new_arr
 
 
-def cross_entropy(predictions: np.ndarray, correct_index: int) -> float:
-    loss = -np.log(predictions[correct_index])
-    return loss
+def cross_entropy(predictions, correct_indices):
+    n = len(correct_indices)
+    return -np.mean(np.log(predictions[np.arange(n), correct_indices] + 1e-9))
 
 
 class Layer:
@@ -28,9 +28,9 @@ class Layer:
         self.activation = activation
 
     def forward(self, activations: np.ndarray) -> np.ndarray:
-        new_act = (self.weights @ activations) + self.bias 
-        self.Z = new_act # Z: pre-activation vector
-        self.S = self.activation(new_act) # S: activation vector
+        new_act = (activations @ self.weights.T) + self.bias
+        self.Z = new_act # Z: pre-activation matrix 
+        self.S = self.activation(new_act) # S: activation matrix
         return self.S
     
 class NeuralNetwork:
@@ -42,34 +42,38 @@ class NeuralNetwork:
             data = layer.forward(data)
         return data
     
-    def backprop(self, input: np.ndarray, predictions: np.ndarray, correct_index: int, learning_rate: float):
+    def backprop(self, input: np.ndarray, predictions: np.ndarray, correct_indexes: int, learning_rate: float):
         # Output Layer - Weights and Biases
 
-        # dC/dZ2 = predictions - y, y = one-hot answer vector
+        # dC/dZ2 = predictions - y, y = one-hot answer matrix
         # predictions = S2
-        y = np.zeros(10) # prob of digits 0, 1, 2, ..., 9
-        y[correct_index] = 1
+        
+        batch_size = input.shape[0]
+        y = np.zeros_like(predictions) # prob of digits 0, 1, 2, ..., 9 in 32 rows
+        y[np.arange(batch_size), correct_indexes] = 1
         dZ2 = predictions - y
 
-        # dC/dW2 = dZ2 * dZ2/dW2 = dZ2 * layers[-2].S -> (10,) * (128,) = (10, 128)
-        dW2 = np.outer(dZ2, self.layers[-2].S)
+        S1 = self.layers[-2].S
 
-        # dC/db2 = dZ2
-        db2 = dZ2
+        # dC/dW2 = dZ2 * dZ2/dW2 / 32 = dZ2 * layers[-2].S / 32
+        dW2 = dZ2.T @ S1 / batch_size
+
+        # dC/db2 = dZ2 / 32
+        db2 = np.mean(dZ2, axis=0)
 
         # Hidden Layer - Weights and Biases
 
-        # dC/dS1 = dZ2 * dZ2/dS1 = dZ2 * W2 -> (10,) * (10, 128) -> (10,) * (128, 10) = (128,)
-        dS1 = self.layers[-1].weights.T @ dZ2  # transpose
+        # dC/dS1 = dZ2 * dZ2/dS1 = dZ2 * W2 -> (10,) * (10, 128)
+        dS1 = dZ2 @ self.layers[-1].weights
 
-        # dC/dZ1 = dS1 * dS1/dZ1 = dS1 * diff_sigmoid(Z1) -> (128,) * (128,) = (128,)
+        # dC/dZ1 = dS1 * dS1/dZ1 = dS1 * diff_sigmoid(Z1)
         dZ1 = dS1 * diff_sigmoid(self.layers[-2].Z)
 
-        # dC/dW1 = dZ1 * dZ1/dW1 = dZ1 * input -> (128,) * (784,) = (128, 784)
-        dW1 = np.outer(dZ1, input)
+        # dC/dW1 = dZ1 * dZ1/dW1 = dZ1 * input
+        dW1 = dZ1.T @ input / batch_size
 
         # dC/db1 = dZ1
-        db1 = dZ1
+        db1 = np.mean(dZ1, axis=0)
 
         # Update weights and biases
 

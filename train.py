@@ -8,36 +8,48 @@ from scipy.ndimage import shift, rotate, zoom
 x_train = x_train / 255.0
 x_test  = x_test.reshape(10000, 784) / 255.0
 
-learning_rate = 0.01
-epochs = 20
+number_of_images = 60000
+batch_size       = 32
 
-hidden_size = 256 # hidden layer number of neurons
+learning_rate    = 0.1
+epochs           = 20
 
-hidden_layer = Layer(784, hidden_size, sigmoid)
-output_layer = Layer(hidden_size, 10, softmax)
+hidden_size      = 256    # hidden layer number of neurons
+
+hidden_layer     = Layer(784, hidden_size, sigmoid)
+output_layer     = Layer(hidden_size, 10, softmax)
 
 network = NeuralNetwork([hidden_layer, output_layer])
 costs = []
 
 for epoch in range(epochs):
     cost_epoch = 0
-    for i in range(len(x_train)):
-        image = x_train[i]
-    
-        # augmentation
-        angle = np.random.uniform(-15, 15)
-        dx = np.random.randint(-3, 4)
-        dy = np.random.randint(-3, 4)
-        image = rotate(image, angle, reshape=False)
-        image = shift(image, [dy, dx])
-        
-        # flat and forward
-        data = image.reshape(784)
-        predictions = network.forward(data)
-        network.backprop(data, predictions, y_train[i], learning_rate)
-        cost_epoch += cross_entropy(predictions, y_train[i])
-    
-    costs.append(cost_epoch / len(x_train))
+    n_batches = 0
+
+    indexes = np.random.permutation(number_of_images)
+
+    for start in range(0, number_of_images, batch_size):
+        batch_indexes = indexes[start:start + batch_size]
+        X = x_train[batch_indexes]
+        Y = y_train[batch_indexes]
+        current_batch_size = X.shape[0]
+
+        augmented = np.empty_like(X)
+        for j in range(current_batch_size):
+            angle = np.random.uniform(-15, 15)
+            dx = np.random.randint(-3, 4)
+            dy = np.random.randint(-3, 4)
+            img = rotate(X[j], angle, reshape=False)
+            img = shift(img, [dy, dx])
+            augmented[j] = img
+
+        X_flat = augmented.reshape(current_batch_size, 784)
+        predictions = network.forward(X_flat)
+        network.backprop(X_flat, predictions, Y, learning_rate)
+        cost_epoch += cross_entropy(predictions, Y)
+        n_batches += 1
+
+    costs.append(cost_epoch / n_batches)
     print(f"epoch {epoch + 1} completed. cost: {costs[-1]:.4f}")
 
 np.save('w1.npy', network.layers[0].weights)
