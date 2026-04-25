@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from keras.datasets import mnist
 from network import Layer, NeuralNetwork, sigmoid, softmax, cross_entropy
+from scipy.ndimage import shift, rotate, zoom
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train = x_train.reshape(60000, 784) / 255.0
+x_train = x_train / 255.0
 x_test  = x_test.reshape(10000, 784) / 255.0
 
 learning_rate = 0.01
@@ -19,7 +20,17 @@ costs = []
 for epoch in range(epochs):
     cost_epoch = 0
     for i in range(len(x_train)):
-        data = x_train[i]
+        image = x_train[i]
+    
+        # augmentation
+        angle = np.random.uniform(-15, 15)
+        dx = np.random.randint(-3, 4)
+        dy = np.random.randint(-3, 4)
+        image = rotate(image, angle, reshape=False)
+        image = shift(image, [dy, dx])
+        
+        # flat and forward
+        data = image.reshape(784)
         predictions = network.forward(data)
         network.backprop(data, predictions, y_train[i], learning_rate)
         cost_epoch += cross_entropy(predictions, y_train[i])
