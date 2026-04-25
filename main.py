@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from keras.datasets import mnist
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 x_train = x_train.reshape(60000, 784) / 255.0
@@ -38,7 +39,7 @@ class NeuralNetwork:
         y[correct_index] = 1
         dZ2 = predictions - y
 
-        # dC/dW2 = dZ2 * dZ2/dW2 = dZ2 * layers[-1].S -> (10,) * (128,) = (10, 128)
+        # dC/dW2 = dZ2 * dZ2/dW2 = dZ2 * layers[-2].S -> (10,) * (128,) = (10, 128)
         dW2 = np.outer(dZ2, self.layers[-2].S)
 
         # dC/db2 = dZ2
@@ -51,7 +52,7 @@ class NeuralNetwork:
 
         # dC/dZ1 = dS1 * dS1/dZ1 = dS1 * diff_sigmoid(Z1) -> (128,) * (128,) = (128,)
         dZ1 = dS1 * diff_sigmoid(self.layers[-2].Z)
-        
+
         # dC/dW1 = dZ1 * dZ1/dW1 = dZ1 * input -> (128,) * (784,) = (128, 784)
         dW1 = np.outer(dZ1, input)
 
@@ -100,15 +101,22 @@ hidden_layer = Layer(784, 128, sigmoid)
 output_layer = Layer(128, 10, softmax)
 
 network = NeuralNetwork([hidden_layer, output_layer])
+costs = []
 
 for epoch in range(epochs):
+    cost_epoch = 0
     for i in range(len(x_train)):
         data = x_train[i]
         predictions = network.forward(data)
         network.backprop(data, predictions, y_train[i], learning_rate)
-    print(f"epoch {epoch + 1} completed")
+        cost_epoch += cross_entropy(predictions, y_train[i])
+    
+    costs.append(cost_epoch / len(x_train))
+    print(f"epoch {epoch + 1} completed. cost: {costs[-1]:.4f}")
+
 
 precision = 0
+
 
 for i in range(len(x_test)):
     data = x_test[i]
@@ -116,5 +124,10 @@ for i in range(len(x_test)):
     if np.argmax(predictions) == y_test[i]:
         precision = precision + 1
 
-print(f"Precision: {precision / 10000 * 100}%")
 
+
+print(f"Precision: {precision / 10000 * 100}%")
+plt.plot(costs)
+plt.xlabel('epoch')
+plt.ylabel('cost')
+plt.show()
