@@ -24,10 +24,9 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
-    pixels = np.array(data['pixels'])
-    predictions = network.forward(pixels)
-    predicted_digit = np.argmax(predictions)
-    return jsonify({'digit': int(predicted_digit)})
+    pixels = np.array(data['pixels']).reshape(1, 784)
+    predictions = network.forward(pixels)[0]
+    return jsonify({'probabilities': predictions.tolist()})
     
 
 if __name__ == '__main__':

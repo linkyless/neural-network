@@ -29,7 +29,7 @@ class Layer:
 
     def forward(self, activations: np.ndarray) -> np.ndarray:
         new_act = (activations @ self.weights.T) + self.bias
-        self.Z = new_act # Z: pre-activation matrix 
+        self.Z = new_act                  # Z: pre-activation matrix 
         self.S = self.activation(new_act) # S: activation matrix
         return self.S
     

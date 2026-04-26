@@ -4,6 +4,21 @@ const predictBtn = document.getElementById('predict');
 const clearBtn   = document.getElementById('clear');
 const result     = document.getElementById('result');
 
+const bars = document.getElementById('bars');
+const bigDigit = document.getElementById('big-digit');
+
+for (let i = 0; i < 10; i++) {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+        <span class="bar-label">${i}</span>
+        <div class="bar-track"><div class="bar-fill" id="bar-${i}"></div></div>
+        <span class="bar-value" id="val-${i}">0%</span>
+    `;
+    bars.appendChild(row);
+}
+
+
 ctx.lineWidth = 30;
 ctx.lineCap = 'round'; // better rounded strokes
 
@@ -36,6 +51,8 @@ predictBtn.addEventListener('click', () => {
     small.width = 28;
     small.height = 28;
     const smallCtx = small.getContext('2d');
+    smallCtx.imageSmoothingEnabled = true;
+    smallCtx.imageSmoothingQuality = 'high';
     smallCtx.drawImage(canvas, 0, 0, 28, 28);
 
     const imageData = smallCtx.getImageData(0, 0, 28, 28);
@@ -51,7 +68,19 @@ predictBtn.addEventListener('click', () => {
         body: JSON.stringify({ pixels: pixels })
     })
     .then(response => response.json())
-    .then(data => {
-        result.textContent = `Prediction: ${data.digit}`;
+    .then(result => {
+        const probs = result.probabilities;
+        const maxIdx = probs.indexOf(Math.max(...probs));
+        bigDigit.textContent = maxIdx;
+        
+        for (let i = 0; i < 10; i++) {
+            const fill = document.getElementById(`bar-${i}`);
+            const val = document.getElementById(`val-${i}`);
+            fill.style.width = `${probs[i] * 100}%`;
+            val.textContent = `${(probs[i] * 100).toFixed(1)}%`;
+            fill.classList.toggle('dim', i !== maxIdx);
+        }
     });
+    
 });
+
